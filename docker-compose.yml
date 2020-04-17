@@ -1,0 +1,81 @@
+version: '3'
+services:
+  caddy:
+    image: "abiosoft/caddy:latest"
+    volumes:
+      - /home/david/config/http/certs:/root/.caddy  # to save certificates on disk
+      - /home/david/config/http/Caddyfile:/etc/Caddyfile  # to mount custom Caddyfile
+      - /home/david/config/http/tmp:/tmp  # to mount tmp storage
+      - /home/david/Cloud/_Pictures/public:/tmp/aizenberg.co.uk/public  # to mount tmp storage
+    ports:
+      - "2015:2015"
+      - "80:80"
+      - "443:443"
+    environment: 
+      - ACME_AGREE=true
+    depends_on:
+      - lounge
+    restart: unless-stopped
+    networks:
+      - host-net
+
+  subsonic:
+    image: hurricane/subsonic
+    container_name: subsonic
+    volumes:
+      - /home/david/.subsonic/:/subsonic
+      - /home/david/.playlists/:/playlists
+      - /home/david/.podcasts/:/podcasts
+      - /home/david/Cloud/_Music/:/music
+    environment: 
+      - TZ=Europe/Vilnius
+      - APP_USER=david
+      - APP_UID=1000
+      - APP_GID=1000
+    restart: unless-stopped
+    networks:
+      - host-net
+
+  ocklet:
+    image: neoromantique/ocklet:latest
+    container_name: ocklet
+    volumes:
+      - /home/david/Cloud/_Pictures:/home/david/Pictures
+    environment: 
+      - TZ=Europe/Vilnius
+      - ENV=production
+      - DOMAIN=cdn.aizenberg.co.uk
+    restart: unless-stopped
+    networks:
+      - host-net
+
+  lounge:
+    image: thelounge/thelounge:latest
+    container_name: lounge
+    restart: unless-stopped
+    volumes:
+      - ~/.thelounge:/var/opt/thelounge # bind lounge config from the host's file system
+    networks:
+      - host-net
+
+  netdata:
+    image: netdata/netdata
+    hostname: netdata.aizenberg.co.uk
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - /etc/passwd:/host/etc/passwd:ro
+      - /etc/group:/host/etc/group:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+    restart: unless-stopped
+    networks:
+      - host-net
+
+
+
+networks:
+  host-net:
+    driver: bridge
