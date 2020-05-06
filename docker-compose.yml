@@ -6,19 +6,34 @@ services:
       - /home/david/config/http/certs:/root/.caddy  # to save certificates on disk
       - /home/david/config/http/Caddyfile:/etc/Caddyfile  # to mount custom Caddyfile
       - /home/david/config/http/tmp:/tmp  # to mount tmp storage
-      - /home/david/Cloud/_Pictures/public:/tmp/aizenberg.co.uk/public  # to mount tmp storage
+      - /home/david/Cloud/_Pictures/public:/tmp/aizenberg.co.uk/public  # to mount public storage
     ports:
       - "2015:2015"
       - "80:80"
       - "443:443"
     environment: 
       - ACME_AGREE=true
-    depends_on:
-      - lounge
     restart: unless-stopped
     networks:
       - host-net
 
+  torrent:
+    image: linuxserver/transmission
+    volumes:
+      - /home/david/torrent/config:/config
+      - /home/david/torrent/downloads:/downloads
+    environment: 
+      - TZ=Europe/Vilnius
+      - PUID=1000
+      - PGID=1000
+      - TRANSMISSION_WEB_HOME=/combustion-release/
+    ports:
+      - 51413:51413
+      - 51413:51413/udp
+    restart: unless-stopped
+    networks:
+      - host-net
+      
   subsonic:
     image: hurricane/subsonic
     container_name: subsonic
@@ -27,6 +42,7 @@ services:
       - /home/david/.playlists/:/playlists
       - /home/david/.podcasts/:/podcasts
       - /home/david/Cloud/_Music/:/music
+      - /home/david/Movies/:/videos
     environment: 
       - TZ=Europe/Vilnius
       - APP_USER=david
@@ -74,7 +90,16 @@ services:
     networks:
       - host-net
 
-
+        #  minecraft:
+        #    image: marctv/minecraft-papermc-server:latest
+        #    ports#:
+        #      - "25565:25565"
+        #    volumes:
+        #      - "/home/david/minecraft:/data"
+        #    environment:
+        #      - EULA="TRUE",
+        #      - MEMORYSIZE=4G
+        #    restart: always
 
 networks:
   host-net:
