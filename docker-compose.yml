@@ -33,7 +33,79 @@ services:
     restart: unless-stopped
     networks:
       - host-net
-      
+
+  viewer:
+    image: ohif/viewer:v1.x
+    container_name: viewer
+    depends_on:
+      - mongo
+      - orthanc
+    restart: unless-stopped
+    networks:
+      - host-net
+      - backend
+#    ports:
+#      - 3000:3000
+    links:
+      - mongo
+    environment:
+      - MONGO_URL=${MONGO_URL:-mongodb://mongo:27017/ohif}
+    volumes:
+      - /dicom/viewer.json:/app/app.json:ro
+
+
+  mongo:
+    image: mongo:4.0.14
+    container_name: mongo
+    restart: unless-stopped
+    networks:
+      - backend
+#    ports:
+#      - ${MONGO_PORT:-27017}:27017
+    volumes:
+      - /dicom/mongodata:/data/db
+
+
+  orthanc:
+    image: jodogne/orthanc-plugins:1.5.8
+    container_name: orthanc
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - host-net
+      - backend
+#    ports:
+#      - ${ORTHANC_DICOM_PORT:-4242}:4242
+#      - ${ORTHANC_HTTP_PORT:-8042}:8042
+    volumes:
+      - /dicom/data:/sampledata
+      - /dicom/db:/var/lib/orthanc/db
+      - /dicom/orthanc.json:/etc/orthanc/orthanc.json:ro
+    environment:
+      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-pgpassword}
+      - PGDATA=${PGDATA:-/var/lib/postgresql/data}
+      - POSTGRES_DB=orthanc
+
+  postgres:
+    image: postgres:12.1
+    container_name: postgres
+    restart: unless-stopped
+    networks:
+      - backend
+#    ports:
+#      - ${POSTGRES_PORT:-5432}:5432
+    volumes:
+      - ${POSTGRES_DATA_MNT:-/pg_data/data}:${PGDATA:-/var/lib/postgresql/data}
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-pgpassword}
+      - PGDATA=${PGDATA:-/var/lib/postgresql/data}
+      - POSTGRES_DB=orthanc
+
+
   subsonic:
     image: hurricane/subsonic
     container_name: subsonic
@@ -104,3 +176,4 @@ services:
 networks:
   host-net:
     driver: bridge
+  backend:
